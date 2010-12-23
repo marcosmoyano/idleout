@@ -1,0 +1,67 @@
+#!/bin/bash
+#
+# idleout          Start/Stop the idleout daemon.
+#
+# chkconfig: 35 90 60
+# description: idleout is a UNIX program that banns users after a giving time.
+#
+# processname: idleout
+# config: /etc/idleout/idleout.conf
+
+# See how we were called.
+
+prog="idleout"
+pfile=`grep -i "^pid" /etc/idleout/idleoutconf.py | awk -F= '{print $2}'`
+logf=`grep -i "^log" /etc/idleout/idleoutconf.py | awk -F= '{print $2}' | cut -f 1`
+
+start() {
+        [ -f $pfile ] && echo "$prog seems to be running ..." && exit 1
+        echo -n $"Starting $prog: "
+        /sbin/idleoutd	 	# It's a daemon by nature :) 
+        RETVAL=$?
+	if [ $RETVAL -eq 0 ]; then
+		echo -n "                                         [ " && echo -e "\e[32;02m OK \e[m\c " && echo -e " ]"  # Fancy print
+	fi
+}
+
+stop() {
+        echo -n $"Stopping $prog: "
+	[ ! -f $pfile ] && echo "$prog is not running ..." && exit 1
+	echo "`date | awk '{print $2" "$3" "$4}'` INFO     <<< Stopping Idleout daemon >>>" >> $logf
+	kill -9 `cat $pfile 2>/dev/null` 2>/dev/null
+	[ $? -eq 0 ] && echo -n "                                         [ " && echo -e "\e[32;02m OK \e[m\c " && echo -e " ]"
+	rm -f $pfile 2>/dev/null
+}
+
+status() {
+	if [ -f $pfile ]; then
+		echo  $"Status $prog: running ..."
+	else
+		echo  $"Status $prog: Not running ..."
+	fi
+}
+
+restart() {
+        stop
+	sleep 2
+        start
+}
+
+case "$1" in
+  start)
+        start
+        ;;
+  stop)
+        stop
+        ;;
+  restart)
+        restart
+        ;;
+  status)
+	status
+	;;
+  *)
+        echo $"Usage: $0 {start|stop|status|restart}"
+        exit 1
+	;;
+esac

@@ -1,0 +1,45 @@
+CONFIGURACION:
+#############
+
+Lea el archivo /etc/idleout/idleout.conf.example para más información.
+El archivo de configuración (/etc/idleout/idleout.conf) consta de dos sectores.
+
+1 ) Configuraciones para el información de logueo, archivo pidfile y servidor SMTP.
+
+2 ) Configuraciones de tiempos de inactividad.
+A su vez, esta segunda parte está dividida en dos sectores:
+
+1 ) Definiciones por grupo.
+
+2 ) Definiciones por usuario.
+
+Estos 2 SIEMPRE deben ir en este orden ya que la configuración por usuario tiene mayor magnitud que la configuración por grupo. 
+Es por esto que si una regla se aplica a un determinado grupo pero se quiere aplicar otra configuración para algún usuario en particular, las siguientes definiciones por usuario se harán cargo de hacer estas excepciones.
+
+Cada definición de los 2 sectores consta de 5 parámetros:
+
+(group|name)=nombre_grupo|nombre_usuario	idle=N(>=0)	grace=N	(>0)	mail=yes/no	silent=yes/no
+
+1 ) Es la definción para el grupo o para el usuario.
+2 ) Es el número de minutos de inactividad que se quiere configurar para el valor del primer parámetro. 
+    El valor 0 significa que el grupo o el usuario no será chequeado por inactividad. 
+    Este valor tiene que ser en minutos (ej: 2hs = 120)
+3 ) Es el número de minutos de gracia que se le quiere dar al usuario que pasa un tiempo de inactividad igual al segundo parámetro. 
+    Este tiene que ser > 0 (por ahora).
+4 ) Es solo para definir si se le quiere enviar un correo al usuario que es deslogueado del sistema por inactividad explicándole el porque de la situación.
+5 ) Es para definir si se quire notificar a la pantalla del usuario que va a ser deslogueado. 
+
+
+FORMAS DE USO:
+##############
+Se puede usar de dos maneras:
+ 
+1 ) Llamándolo como un servicio de inicio (/etc/init.d/idleout start).
+
+2 ) Se puede ejecutar directamente desde una terminal (/sbin/idleoutd).
+    En esta última opción con el parámetro -D o -d cada 1 minuto imprimirá información de utilidad a la terminal.
+
+FUNCIONAMIENTO:
+##############
+El programa toma un "snapshot" del estado de los usuarios del sistema cada 60 segundos y según lo especificado en el
+archivo de configuración realiza todos los computos necesarios.

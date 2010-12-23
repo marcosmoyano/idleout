@@ -1,0 +1,5 @@
+*) Add SMTP configuration.
+*) Add device matching regular expressions to configuration file.
+*) Add checks for X sessions.
+*) Free the world!
+## For now ##

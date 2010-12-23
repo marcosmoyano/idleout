@@ -1,0 +1,69 @@
+---- Version 0.8.1 ----
+*) Removed external log rotation.
+*) Added internal log rotation based on log size.
+*) Added log size to configuration file.
+*) Fixed the addition of a logging instance every 30'
+*) Fixed every bug found.
+---- Version 0.8.0 ----
+*) Added "silent" option to configuration file.
+*) Added SMTP configuration to configuration file.
+*) Added SMTP output to debug mode.
+*) Modified code to be >= 8 according to pylint (http://www.logilab.org/projects/pylint/)
+*) Source code checked with pychecker (http://pychecker.sourceforge.net/)
+*) Added psyco module for speed up (http://psyco.sourceforge.net/)
+*) Added more log information.
+*) Added robustness.
+*) Removed unnecessary data structures.
+*) Removed unnecessary functions and "os" calls.
+*) Fixed every bug found.
+---- Version 0.7.1-r1 ----
+*) Added double check for ssh session before notify the user.
+---- Version 0.7.1 ----
+*) Reduce amount of code in usrout. Remove unnecessary functions and data structures.
+*) Fix bug in the install and uninstall script.
+*) Reduce init script. Depends on pidfile.
+*) Added more information about errors and exit conditions.
+ ---- Version 0.7 ----
+*) Better parsing for configuration file. 
+*) Added more flexibility to configuration file.
+*) Fix a few bugs to the init script.
+*) Better parsing of command line options for usrout. Done with getopt.
+ ---- Version 0.6 ----
+*) Added log file to configuration file.
+*) Added pid file to configuration file.
+*) Reduce the amount of log without leaving information behind.
+*) Modifications to the idleoutd notifications to users.
+*) Fix bug with grace limits.
+*) Modifications to the information displayed in debug mode.
+*) Modifications to the init script based on the pidfile from the configuration file.
+*) Added check for SMTP service on port 25.
+*) Fix mail problem within idleoutd.
+*) Added mail notification to usrout.
+*) Added uninstall script
+ ---- Version 0.5 ----
+*) Remove logg function to both idleoutd and usrout. Implemented logging through the python logging module.
+*) Added signal handling into debug mode. 
+*) Try change dir, setsid and umask functions in daemon.
+*) Fix problem with the "*" character in the device section of the finger command. Some distros like SuSE use it.
+*) Replace the string module for buildin functions. 
+ ---- Version 0.4 ----
+*) Added usrout script. This script was made to logout users from the command line with some flexibility.
+*) Added man pages for idleoutd and usrout.
+*) Added -h or --help parameters for information. 
+ ---- Version 0.3 ---- 
+*) Better parsing for configuration file.
+*) Better output for the debug mode.
+   Split the information into categories.
+*) Better group configuration fetching. 
+   It doesn't trust the /etc/group file anymore. It will go through the /etc/passwd as well.
+*) Better functionality for group configurated users. 
+   It will fetch the lowest idle configuration for users belonging to different groups.
+*) Removed unnecessary data structures. 
+ ---- Version 0.2 ----
+*) Better parsing for configuration file.
+*) Removed psautolog script. Outside bash script for processes.
+*) Added daemon functionality including pidfile.
+*) Added redundancy to the init script.
+*) Removed unnecessary data structures. 
+ ---- Version 0.1 ----
+*) First release.

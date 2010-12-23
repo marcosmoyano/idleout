@@ -1,0 +1,244 @@
+#!/usr/bin/env python
+
+#  Marcos Moyano - marcos@anue.biz
+
+import os, sys, getopt
+from time import sleep
+from re import match
+from logging import warning, info, basicConfig, DEBUG
+
+confile = "/etc/idleout/idleout.conf"
+
+## Necesary data
+procs = {}
+printversion = "0.8.0"
+USER = ""
+DEVICE = ""
+WARN = 0
+MAIL = 0
+
+##################
+# Print Help Msg #
+##################
+def printhelp():
+    print """Logout idle users.
+usrout is a part of Idleout.
+
+Usage: usrout [OPTIONS]
+
+   -d, --device DEVICE      Logout user from the specified device. Leave out the "/dev/" part.
+   -u, --user USER          Logout user from all devices.
+   -u USER -d DEVICE        Logout specified user from specified device (combined).
+   -w, --warn               Warn the user for 60 seconds of what is about to happend.
+   -m, --mail		    Mail the user explaning why he was kicked out.
+   -V, -v, --version        Print version information and exit.
+   -h, --help               Print this help and exit.
+
+Report bugs to <marcos@anue.biz>."""
+    return
+    
+#### End of print help ####
+
+####################
+# Manage arguments #
+####################
+if len(sys.argv[1:]) == 0:
+    print ("To few arguments: %d recieved. At least two are necessary.\nTry 'usrout -h' or 'usrout --help' for more information." % len(sys.argv[1:]))
+    sys.exit(1)
+elif len(sys.argv[1:]) > 6:
+    print ("To many arguments: %d recieved. Six is the maximum.\nTry 'usrout -h' or 'usrout --help' for more information." % len(sys.argv[1:]))
+    sys.exit(1)
+else:
+    try:
+        optlist, args = getopt.getopt(sys.argv[1:], 'u:d:wmhvV', ['device=', 'user=', 'warn', 'mail', 'help', 'version'])
+    except getopt.GetoptError, error:
+        print ("usrout: Invalid argument.%s\nTry 'usrout -h' or 'usrout --help' for more information." % error)
+        sys.exit(1)
+    for x, y in optlist:
+        if x in ("-u","--user"):
+            USER = y
+        elif x in ("-d","--device"):
+            DEVICE = y
+        elif x in ("-w","--warn"):
+            WARN = 1
+        elif x in ("-m","--mail"):
+            MAIL = 1
+        elif x in ("-h","--help"):
+            printhelp()
+            sys.exit(0)
+        elif x in ("-v","-V","--version"):
+            print ("usrout version is: %s \n" % printversion)
+            sys.exit(0)
+
+#### End of manage arguments ####
+
+######################
+# Define logging way #
+######################
+def logg(logfile):
+    basicConfig(level=DEBUG,format='%(asctime)s %(levelname)-8s %(message)s',
+                    datefmt='%b %d %H:%M:%S',filename=logfile,filemode='a')
+    return
+
+#### End of define logging ####
+
+##################
+#    Get info    #
+##################
+def get_info():
+    tmp = open(confile,"r")
+    for x in tmp.readlines():
+        if match("^log",x.lower()):
+            logfile = x.replace(" = ","=").split("=")[1].strip()
+            logg(logfile)
+    return()
+   
+#### end get info ####
+
+##################
+#  Compute info  #
+##################
+def compute(user, dev, process, WARN, MAIL):
+    if WARN == 1:
+        notify(user, dev, 1)
+        sleep(60)
+    if MAIL == 1:
+        send_mail(user, dev)
+    bann_usr(user, dev, process, 1)
+
+#### End of compute ####
+
+##################
+#   Notify user  #
+##################
+def notify(user,dev,grace):
+    fd = "/dev/"+dev
+    seconds = grace*60
+    try:
+        tonot = open(fd,'a')
+        tonot.write("\n\r\n<<< MESSAGE FROM IDLEOUT >>>\n\n\
+        You have been idle for too long.\n\
+        You you will be banned in the next %d seconds!\n\n\
+<<<    END OF MESSAGE    >>>\n\n" % seconds)
+        tonot.close()
+    except:
+        warning("usrout - I was unable to open device %s." % fd)
+
+#### end of notify user ####
+
+###############
+#  Bann user  #
+###############
+def bann_usr(user, device, pids, seconds):
+    seconds = str(int(seconds)*60)
+    fd = "/dev/"+device
+    try:
+        tonot = open(fd,'a')
+        tonot.write("\n\n<<< MESSAGE FROM IDLEOUT >>> \n\nBanning user: %s\n\n<<<    END OF MESSAGE    >>>\n\n" % user)
+        tonot.close()
+        for y, x in pids.items():
+            for k in x.split():
+	        k = int(k)
+                try:
+                    os.kill(k,9)
+                except:
+                    warning("usrout - Process does not exist or I was unable to kill it (%d)" % x)
+    except:
+        warning("usrout - I was unable to open device %s." % fd) 
+
+#### End of bann user ####
+
+##################
+# Find Processes #
+##################
+def find_proc(user,dev):
+    procs = {}
+    lo = os.popen("ps -eo \"%s\" | awk '{print $3 \" \" $1 \" \" $2}' | grep %s | grep %s | egrep -v \":0|grep\" | awk '{print $2}' | xargs" % ("%p %y %U",user,dev),"r")
+    for li in lo.readlines():
+        li = li.strip()
+        procs["%s,%s" %(user,dev)] = li
+    return(procs)
+
+#### End of find processes ####
+
+###############
+# Check for SMTP service #
+###############
+def check_smtp():
+    pipe = os.popen("netstat -an | grep \" LISTEN \" | awk '/:25 /' | head -n 1" , "r")
+    if pipe.readline() != "":
+        return(0)
+    else:
+        return(1)
+
+#### end of check SMTP ####
+
+#############
+# Send mail #
+#############
+def send_mail(user,dev):
+    ecode = check_smtp()
+    if ecode != 0:
+        warning("usrout - Could Not find SMTP service running on port 25. NOT sending email.")
+        return
+    pid = os.fork()
+    if pid > 0:
+        sys.exit(0)
+    fromaddr = "idleout"
+    toaddrs  = "%s" % user
+    line = "You have been idle for too long.\n\
+    Idleout has decided to terminate your conection on device %s.\n" % dev
+    msg = ("From: %s\r\nTo: %s\r\n\r\n%s" % (fromaddr, toaddrs, line))
+    try:
+    	server = smtplib.SMTP('localhost')
+    	server.set_debuglevel(0)
+    	server.sendmail(fromaddr, toaddrs, msg)
+    	server.quit()
+    	info("usrout - Email sent to user %s" % user )
+    except:
+    	warning("usrout - Error connecting to SMTP service. Not sending email.")
+
+#### end of send_mail ####
+
+###########
+#  MAIN   #
+###########
+def main():
+    get_info()
+    procs = find_proc(USER, DEVICE)
+    compute(USER, DEVICE, procs, WARN, MAIL)
+
+#### End of MAIN :) ####
+
+if __name__ == "__main__":
+    if WARN == 0:
+        main()
+    else:
+        try:
+            pid = os.fork()
+            if pid > 0:
+                sys.exit(0) # exit first parent
+        except OSError, e:
+            print >>sys.stderr, "fork #1 failed: %d (%s)" % (e.errno, e.strerror)
+            sys.exit(1)
+        try:
+            os.chdir("/")
+        except:
+            pass
+        try:
+            os.setsid()
+        except:
+            pass
+        try:
+            os.umask(0)
+        except:
+            pass
+        try:
+            pid = os.fork()
+            if pid > 0:
+                sys.exit(0)
+        except OSError, e:
+            print >>sys.stderr, "fork #2 failed: %d (%s)" % (e.errno, e.strerror)
+            sys.exit(1)
+# Start the daemon
+        main()
